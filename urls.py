@@ -17,7 +17,8 @@ urlpatterns = patterns(
         name='qgis-server-download-zip'
     ),
     url(
-        r'^qgis-server/tiles/'
+        r'^qgis-server/'
+        r'tiles/'
         r'(?P<layername>[^/]*)/'
         r'(?P<z>[0-9]*)/'
         r'(?P<x>[0-9]*)/'
