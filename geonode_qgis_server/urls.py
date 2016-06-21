@@ -1,68 +1,33 @@
 # -*- coding: utf-8 -*-
+from django.conf.urls import url
+from django.views.generic import TemplateView
 
-from django.conf.urls import patterns, url
-from geonode.qgis_server.views import (
-    download_zip,
-    tile,
-    legend,
-    thumbnail,
-    qgis_server_request,
-    qgis_server_pdf,
-    qgis_server_map_print
-)
+from . import views
 
-__author__ = 'ismailsunni'
-__project_name__ = 'geonode'
-__filename__ = 'urls'
-__date__ = '1/29/16'
-__copyright__ = 'imajimatika@gmail.com'
-
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(
-        r'^qgis-server/download-zip/(?P<layername>[^/]*)$',
-        download_zip,
-        name='qgis-server-download-zip'
+        regex="^QGISServerLayer/~create/$",
+        view=views.QGISServerLayerCreateView.as_view(),
+        name='QGISServerLayer_create',
     ),
     url(
-        r'^qgis-server/'
-        r'tiles/'
-        r'(?P<layername>[^/]*)/'
-        r'(?P<z>[0-9]*)/'
-        r'(?P<x>[0-9]*)/'
-        r'(?P<y>[0-9]*).png$',
-        tile,
-        name='qgis-server-tile'
+        regex="^QGISServerLayer/(?P<pk>\d+)/~delete/$",
+        view=views.QGISServerLayerDeleteView.as_view(),
+        name='QGISServerLayer_delete',
     ),
     url(
-        r'^qgis-server/legend/(?P<layername>[^/]*)'
-        r'(?:/(?P<layertitle>[^/]*))?$',
-        legend,
-        name='qgis-server-legend'
-    ),
-    # url(
-    #     r'^qgis-server/legend/(?P<layername>[^/]*)$',
-    #     legend,
-    #     name='qgis-server-legend'
-    # ),
-    url(
-        r'^qgis-server/thumbnail/(?P<layername>[^/]*)$',
-        thumbnail,
-        name='qgis-server-thumbnail'
+        regex="^QGISServerLayer/(?P<pk>\d+)/$",
+        view=views.QGISServerLayerDetailView.as_view(),
+        name='QGISServerLayer_detail',
     ),
     url(
-        r'^qgis-server/wms/$',
-        qgis_server_request,
-        name='qgis-server-request'
+        regex="^QGISServerLayer/(?P<pk>\d+)/~update/$",
+        view=views.QGISServerLayerUpdateView.as_view(),
+        name='QGISServerLayer_update',
     ),
     url(
-        r'^qgis-server/pdf/info\.json$',
-        qgis_server_pdf,
-        name='qgis-server-pdf'
+        regex="^QGISServerLayer/$",
+        view=views.QGISServerLayerListView.as_view(),
+        name='QGISServerLayer_list',
     ),
-    url(
-        r'^qgis-server/map/print$',
-        qgis_server_map_print,
-        name='qgis-server-map-print'
-    ),
-)
+	]
