@@ -1,0 +1,3 @@
+[submodule "geosafe"]
+	path = geosafe
+	url = git@github.com:lucernae/geosafe.git
