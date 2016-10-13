@@ -522,7 +522,16 @@ def file_upload(filename, name=None, user=None, title=None, abstract=None,
     keywords = list(set(keywords))
     if keywords:
         if len(keywords) > 0:
-            layer.keywords.add(*keywords)
+            for k in keywords:
+                try:
+                    # lucernae: Not sure why this is failing. In my case, it failed
+                    # when trying to add 'Human health and safety' keyword to layer.keywords
+                    # the error:
+                    # {IntegrityError}duplicate key value violates unique constraint "base_hierarchicalkeyword_name_key"
+                    # DETAIL:  Key (name)=(Human health and safety) already exists.
+                    layer.keywords.add(k)
+                except:
+                    pass
 
     # Assign the regions (needs to be done after saving)
     regions_resolved = list(set(regions_resolved))
