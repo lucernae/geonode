@@ -26,6 +26,7 @@ from itertools import cycle, izip
 import json
 import logging
 import os
+from os.path import basename, splitext, isfile
 import re
 import sys
 from threading import local
@@ -33,7 +34,6 @@ import time
 import uuid
 import base64
 import httplib2
-
 
 import urllib
 from urlparse import urlparse
@@ -68,6 +68,7 @@ from geonode import GeoNodeException
 from geonode.layers.enumerations import LAYER_ATTRIBUTE_NUMERIC_DATA_TYPES
 from geonode.layers.models import Layer, Attribute, Style
 from geonode.layers.utils import layer_type, get_files, create_thumbnail
+from geonode.security.views import _perms_info_json
 from geonode.utils import set_attributes
 import xml.etree.ElementTree as ET
 
@@ -182,6 +183,58 @@ _style_templates = dict(
 
 def _style_name(resource):
     return _punc.sub("_", resource.store.workspace.name + ":" + resource.name)
+
+
+def extract_name_from_sld(gs_catalog, sld, sld_file=None):
+    try:
+        if sld:
+            dom = etree.XML(sld)
+        elif sld_file and isfile(sld_file):
+            dom = etree.parse(sld_file)
+    except Exception:
+        logger.exception("The uploaded SLD file is not valid XML")
+        raise Exception(
+            "The uploaded SLD file is not valid XML")
+
+    named_layer = dom.findall(
+        "{http://www.opengis.net/sld}NamedLayer")
+    user_layer = dom.findall(
+        "{http://www.opengis.net/sld}UserLayer")
+
+    el = None
+    if named_layer and len(named_layer) > 0:
+        user_style = named_layer[0].findall("{http://www.opengis.net/sld}UserStyle")
+        if user_style and len(user_style) > 0:
+            el = user_style[0].findall("{http://www.opengis.net/sld}Name")
+            if len(el) == 0:
+                el = user_style[0].findall("{http://www.opengis.net/se}Name")
+
+        if len(el) == 0:
+            el = named_layer[0].findall("{http://www.opengis.net/sld}Name")
+        if len(el) == 0:
+            el = named_layer[0].findall("{http://www.opengis.net/se}Name")
+
+    if not el or len(el) == 0:
+        if user_layer and len(user_layer) > 0:
+            user_style = user_layer[0].findall("{http://www.opengis.net/sld}UserStyle")
+            if user_style and len(user_style) > 0:
+                el = user_style[0].findall("{http://www.opengis.net/sld}Name")
+                if len(el) == 0:
+                    el = user_style[0].findall("{http://www.opengis.net/se}Name")
+
+            if len(el) == 0:
+                el = user_layer[0].findall("{http://www.opengis.net/sld}Name")
+            if len(el) == 0:
+                el = user_layer[0].findall("{http://www.opengis.net/se}Name")
+
+    if not el or len(el) == 0:
+        if sld_file:
+            return splitext(basename(sld_file))[0]
+        else:
+            raise Exception(
+                "Please provide a name, unable to extract one from the SLD.")
+
+    return el[0].text
 
 
 def get_sld_for(gs_catalog, layer):
@@ -488,6 +541,10 @@ def gs_slurp(
                 "bbox_y0": Decimal(resource.latlon_bbox[2]),
                 "bbox_y1": Decimal(resource.latlon_bbox[3])
             })
+
+            # sync permissions in GeoFence
+            perm_spec = json.loads(_perms_info_json(layer))
+            layer.set_permissions(perm_spec)
 
             # recalculate the layer statistics
             set_attributes_from_geoserver(layer, overwrite=True)

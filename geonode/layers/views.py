@@ -26,12 +26,10 @@ import base64
 import traceback
 import uuid
 import decimal
-
 import re
 
 from django.contrib.gis.geos import GEOSGeometry
 from django.template.response import TemplateResponse
-from lxml import etree
 from requests import Request
 from itertools import chain
 from six import string_types
@@ -80,14 +78,14 @@ from geonode.people.forms import ProfileForm, PocForm
 from geonode.security.views import _perms_info_json
 from geonode.documents.models import get_related_documents
 from geonode.utils import build_social_links
-from geonode.geoserver.helpers import cascading_delete, gs_catalog
-from geonode.geoserver.helpers import ogc_server_settings, save_style
 from geonode.base.views import batch_modify
 from geonode.base.models import Thesaurus
 from geonode.maps.models import Map
-from geonode.geoserver.helpers import _invalidate_geowebcache_layer
+from geonode.geoserver.helpers import (cascading_delete, gs_catalog,
+                                       ogc_server_settings, save_style,
+                                       extract_name_from_sld, _invalidate_geowebcache_layer)
 
-if 'geonode.geoserver' in settings.INSTALLED_APPS:
+if check_ogc_backend(geoserver.BACKEND_PACKAGE):
     from geonode.geoserver.helpers import _render_thumbnail
 if check_ogc_backend(qgis_server.BACKEND_PACKAGE):
     from geonode.qgis_server.models import QGISServerLayer
@@ -208,27 +206,8 @@ def layer_upload(request, template='upload/layer_upload.html'):
                         msg = 'Failed to process.  Could not find matching layer.'
                         raise Exception(msg)
                     sld = open(base_file).read()
-
-                    try:
-                        dom = etree.XML(sld)
-                    except Exception:
-                        raise Exception(
-                            "The uploaded SLD file is not valid XML")
-
-                    el = dom.findall(
-                        "{http://www.opengis.net/sld}NamedLayer/{http://www.opengis.net/sld}Name")
-                    if len(el) == 0:
-                        el = dom.findall(
-                            "{http://www.opengis.net/sld}UserLayer/{http://www.opengis.net/sld}Name")
-                    if len(el) == 0:
-                        el = dom.findall(
-                            "{http://www.opengis.net/sld}NamedLayer/{http://www.opengis.net/se}Name")
-                    if len(el) == 0:
-                        el = dom.findall(
-                            "{http://www.opengis.net/sld}UserLayer/{http://www.opengis.net/se}Name")
-                    if len(el) == 0:
-                        raise Exception(
-                            "Please provide a name, unable to extract one from the SLD.")
+                    # Check SLD is valid
+                    extract_name_from_sld(gs_catalog, sld, sld_file=base_file)
 
                     match = None
                     styles = list(saved_layer.styles.all()) + [
@@ -410,13 +389,20 @@ def layer_detail(request, layername, template='layers/layer_detail.html'):
             granules = {"features": []}
             all_granules = {"features": []}
 
-    # a flag to be used for geosafe
+    group = None
+    if layer.group:
+        try:
+            group = GroupProfile.objects.get(slug=layer.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
+    # a flag to be used for qgis server
     show_popup = False
     if 'show_popup' in request.GET and request.GET["show_popup"]:
         show_popup = True
 
     context_dict = {
-        "resource": layer,
+        'resource': layer,
+        'group': group,
         'perms_list': get_perms(request.user, layer.get_self_resource()),
         "permissions_json": _perms_info_json(layer),
         "documents": get_related_documents(layer),
@@ -1232,8 +1218,15 @@ def layer_metadata_detail(
         layername,
         'view_resourcebase',
         _PERMISSION_MSG_METADATA)
+    group = None
+    if layer.group:
+        try:
+            group = GroupProfile.objects.get(slug=layer.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
     return render_to_response(template, RequestContext(request, {
         "resource": layer,
+        "group": group,
         'SITEURL': settings.SITEURL[:-1]
     }))
 

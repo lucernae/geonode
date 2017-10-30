@@ -20,6 +20,7 @@
 
 import math
 import logging
+import urlparse
 from itertools import chain
 
 from guardian.shortcuts import get_perms
@@ -68,7 +69,6 @@ from geonode.people.forms import ProfileForm
 from geonode.utils import num_encode, num_decode
 from geonode.utils import build_social_links
 from geonode import geoserver, qgis_server
-import urlparse
 from geonode.base.views import batch_modify
 
 from requests.compat import urljoin
@@ -147,9 +147,16 @@ def map_detail(request, mapid, snapshot=None, template='maps/map_detail.html'):
     layers = MapLayer.objects.filter(map=map_obj.id)
     links = map_obj.link_set.download()
 
+    group = None
+    if map_obj.group:
+        try:
+            group = GroupProfile.objects.get(slug=map_obj.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
     context_dict = {
         'config': config,
         'resource': map_obj,
+        'group': group,
         'layers': layers,
         'perms_list': get_perms(request.user, map_obj.get_self_resource()),
         'permissions_json': _perms_info_json(map_obj),
@@ -1288,8 +1295,15 @@ def map_metadata_detail(
         mapid,
         template='maps/map_metadata_detail.html'):
     map_obj = _resolve_map(request, mapid, 'view_resourcebase')
+    group = None
+    if map_obj.group:
+        try:
+            group = GroupProfile.objects.get(slug=map_obj.group.name)
+        except GroupProfile.DoesNotExist:
+            group = None
     return render_to_response(template, RequestContext(request, {
         "resource": map_obj,
+        "group": group,
         'SITEURL': settings.SITEURL[:-1]
     }))
 

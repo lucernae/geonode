@@ -24,7 +24,6 @@ import tempfile
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-
 from geonode import geoserver, qgis_server
 from geonode.layers.forms import JSONField
 from geonode.upload.models import UploadFile
