@@ -217,7 +217,7 @@ class QGISServerStyle(models.Model, PermissionLevelMixin):
         :return: QGISServerStyle model and boolean flag created
         :rtype: QGISServerStyle, bool
         """
-
+        logger.debug('Get style from url: %s' % style_url)
         if isinstance(style_xml, str):
             style_xml = etree.fromstring(style_xml)
 

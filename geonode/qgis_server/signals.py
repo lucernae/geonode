@@ -287,6 +287,10 @@ def qgis_server_post_save(instance, sender, **kwargs):
         instance, qgis_layer.qgis_project_path, overwrite=overwrite,
         internal=True)
 
+    logger.debug('Creating the QGIS Project : %s' % response.url)
+    if response.content != 'OK':
+        logger.debug('Result : %s' % response.content)
+
     # Generate style model cache
     style_list(instance, internal=False)
 
@@ -297,10 +301,6 @@ def qgis_server_post_save(instance, sender, **kwargs):
             qml_file.delete()
     except LayerFile.DoesNotExist:
         pass
-
-    logger.debug('Creating the QGIS Project : %s' % response.url)
-    if response.content != 'OK':
-        logger.debug('Result : %s' % response.content)
 
     Link.objects.update_or_create(
         resource=instance.resourcebase_ptr,

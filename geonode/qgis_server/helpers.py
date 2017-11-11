@@ -780,6 +780,9 @@ def style_list(layer, internal=True, generating_qgis_capabilities=False):
     url = wms_get_capabilities_url(layer, internal=internal)
     response = requests.get(url)
 
+    logger.debug('Get Capabilities content:')
+    logger.debug(response.content)
+
     root_xml = etree.fromstring(response.content)
     styles_xml = root_xml.xpath(
         'wms:Capability/wms:Layer/wms:Layer/wms:Style',
@@ -800,6 +803,9 @@ def style_list(layer, internal=True, generating_qgis_capabilities=False):
         QGISServerStyle.from_get_capabilities_style_xml(
             qgis_layer, style_xml)[0]
         for style_xml in styles_xml]
+
+    logger.debug('Styles obj')
+    logger.debug(styles_obj)
 
     # Only tried to generate/fix QGIS GetCapabilities to return correct style
     # list, if:
@@ -851,6 +857,9 @@ def style_list(layer, internal=True, generating_qgis_capabilities=False):
     if set_default_style and styles_obj:
         qgis_layer.default_style = styles_obj[0]
         qgis_layer.save()
+
+    logger.debug('Default style')
+    logger.debug(qgis_layer.default_style)
 
     return styles_obj
 
