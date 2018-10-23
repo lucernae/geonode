@@ -24,6 +24,7 @@ from optparse import make_option
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
+from geonode.base.models import Backup
 
 from geonode.base.management.commands import helpers
 from geonode.qgis_server.management.commands.helpers import Config
@@ -36,6 +37,13 @@ class Command(BaseCommand):
 
     option_list = BaseCommand.option_list + Config.qgis_server_option_list + (
         Config.option,
+        make_option(
+            '--backup-id',
+            default=0,
+            dest='backup_id',
+            type='int',
+            help='Backup model id to be updated for this backup archive.'
+        ),
         make_option(
             '-i',
             '--ignore-errors',
@@ -95,6 +103,7 @@ class Command(BaseCommand):
         force_exec = options.get('force_exec')
         backup_dir = options.get('backup_dir')
         skip_qgis_server = options.get('skip_qgis_server')
+        backup_id = options.get('backup_id')
 
         if not backup_dir or len(backup_dir) == 0:
             raise CommandError("Destination folder '--backup-dir' is mandatory")
@@ -112,6 +121,16 @@ class Command(BaseCommand):
                 os.makedirs(target_folder)
             # Temporary folder to store backup files. It will be deleted at the end.
             os.chmod(target_folder, 0777)
+
+            # Update backup object info if available
+            try:
+                backup_filename = os.path.join(
+                    backup_dir, '{}.zip'.format(dir_time_suffix))
+                Backup.objects.filter(pk=backup_id).update(
+                    location=backup_filename)
+            except Backup.DoesNotExist:
+                # It means this is executed directly from command line
+                pass
 
             if not skip_qgis_server:
                 self.create_qgis_server_backup(

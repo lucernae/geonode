@@ -22,6 +22,7 @@ from django.contrib import admin
 from django.contrib.admin import helpers
 from django.conf import settings
 from django.core.management import call_command
+from django.forms import CharField
 from django.template.response import TemplateResponse
 
 import StringIO
@@ -72,6 +73,8 @@ class BackupAdminForm(ModelForm):
     class Meta:
         model = Backup
         fields = '__all__'
+
+    base_folder = CharField(initial=settings.BACKUP_DEFAULT_DIRECTORY)
 
 
 def run(self, request, queryset):

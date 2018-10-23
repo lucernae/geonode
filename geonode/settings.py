@@ -1342,3 +1342,7 @@ INVITATIONS_ADAPTER = ACCOUNT_ADAPTER
 
 # Choose thumbnail generator -- this is the default generator
 THUMBNAIL_GENERATOR = "geonode.layers.utils.create_gs_thumbnail_geonode"
+
+# GeoNode default backup directory
+BACKUP_DEFAULT_DIRECTORY = os.environ.get(
+    'BACKUP_DEFAULT_DIRECTORY', 'backups')
